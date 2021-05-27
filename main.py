@@ -1,6 +1,10 @@
 import pandas as pd
 
 
+minTotNum = 1000
+minFemNum = 200
+minMalNum = 200
+
 if __name__ == '__main__':
 
     u_cols = ['user_id', 'gender', 'age', 'occupation', 'zip']
@@ -18,25 +22,18 @@ if __name__ == '__main__':
     # movies = pd.read_csv('data/u.item', sep='|', names=m_cols, usecols=range(5), encoding="ISO-8859-1")
 
     lens = pd.merge(pd.merge(ratings, users), movies)
-    mean_ratings = lens.pivot_table('rating', index='title', columns='gender', aggfunc='mean')
 
-    size_by_title = lens.groupby('title').size()
-    print("-----MEAN_RATING:----")
-    print(mean_ratings.head())
-    print("---------------------")
-    pre_active_name = size_by_title.index[size_by_title >= 2000]
-    mean_ratings = mean_ratings.loc[pre_active_name]
-    print(mean_ratings.head())
-
-    pre_active_name = list(set(pre_active_name))
-    active_filter = lens.groupby('title').gender.value_counts()
-
-    print("-----MEAN_RATING:----")
-    print(mean_ratings)
-    print("---------------------")
     print("-----LENS PRINT:-----")
     print(lens)
     print("---------------------")
+
+    size_by_title = lens.groupby('title').size()
+    pre_active_name = size_by_title.index[size_by_title >= minTotNum]
+
+    pre_active_name = list(set(pre_active_name))
+
+    active_filter = lens.groupby('title').gender.value_counts()
+
     print("-------FILTER:-------")
     print(active_filter)
     print("---------------------")
@@ -44,9 +41,9 @@ if __name__ == '__main__':
     active_name = list()
     for title in pre_active_name:
         try:
-            if (active_filter[(title, 'F')] > 49) & (active_filter[(title, 'M')] > 49):
+            if (active_filter[(title, 'F')] > minFemNum) & (active_filter[(title, 'M')] > minMalNum):
                 if title not in active_name:
-                    active_name.append(title)
+                    active_name.append(title.encode('unicode-escape').decode('unicode-escape'))
         except Exception as e:
             print(e)
             continue
@@ -55,8 +52,13 @@ if __name__ == '__main__':
     print(pd.Series(active_name))
     print("---------------------")
 
-    mean_ratings = mean_ratings.loc[active_name]
+    lens = lens.pivot_table('rating', index='title', columns='gender', aggfunc='mean')
+    mean_ratings = lens.loc[active_name]
     mean_ratings['diff'] = mean_ratings['F'] - mean_ratings['M']
+
+    print("-----MEAN_RATING:----")
+    print(mean_ratings.head())
+    print("---------------------")
 
     sorted_ratings = mean_ratings.sort_values(by='diff')
     print("------MOST_CONTROVERSIAL::MALE_LIKES------")
